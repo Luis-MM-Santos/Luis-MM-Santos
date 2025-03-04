@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <project name="SaveTheChickens" default="jarfile">
 
     <!-- Initialize build properties -->
@@ -9,13 +9,10 @@
         <property name="build.dir" value="build" />
         <property name="classes.dir" value="${build.dir}/classes" />
         <property name="lib.dir" value="lib" />
+        <property name="resources.dir" value="resources"/>
         <path id="classpath">
             <fileset dir="${lib.dir}" includes="**/*.jar" />
         </path>
-        <copy todir="${classes.dir}">
-            <fileset dir="resources"/>
-        </copy>
-
     </target>
 
     <!-- Creates the build directories to hold JAR and Class files -->
@@ -30,13 +27,21 @@
 
     <!-- Compiles the source code -->
     <target name="compile" description="Compiles the source code" depends="prepare">
-        <javac srcdir="${src.dir}" destdir="${classes.dir}">
+        <javac srcdir="${src.dir}" destdir="${classes.dir}" source="1.8" target="1.8">
             <classpath refid="classpath"/>
         </javac>
     </target>
 
+    <!-- Copies resources to the build directory -->
+    <target name="copy-resources" description="Copy resources to build directory" depends="prepare">
+        <mkdir dir="${classes.dir}/resources"/>
+        <copy todir="${classes.dir}/resources">
+            <fileset dir="${resources.dir}" includes="**/*"/>
+        </copy>
+    </target>
+
     <!-- Creates a JAR file -->
-    <target name="jarfile" description="Archives the code" depends="compile">
+    <target name="jarfile" description="Archives the code" depends="compile, copy-resources">
         <jar destfile="${build.dir}/${project.name}.jar" basedir="${classes.dir}">
             <manifest>
                 <attribute name="Main-Class" value="${main.class}" />
