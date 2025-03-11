@@ -7,23 +7,18 @@ clientSocket = serverSocket.accept();
 }*/
 package io.codeforall.kernelfc;
 
+import java.net.*;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.concurrent.*;
 
 public class Server {
     public static void main(String[] args) throws IOException {
-        ClientHandler clientHandler = null;
+
         // STEP1: Get parameters from command line arguments
-        int portNumber = 8080;
-
+        int portNumber = 8686;
+        ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
         ServerSocket serverSocket = new ServerSocket(portNumber);
-
         Socket clientSocket = null;
 
 
@@ -31,86 +26,57 @@ public class Server {
         // block waiting for a client to connect
         System.out.println("A new chat has begun. Waiting for clients message!");
 
-
 // STEP2: Bind to local port and block while waiting for client connections
-        for (int i = 0; i < 2; i++) {
-            clientHandler = new ClientHandler(serverSocket, clientSocket);
-            System.out.println("Waiting for a client connection");
-            waitingConnection.submit(clientHandler);
+        while (true) {
+            System.out.println(Thread.currentThread().getName() + " Waiting for a client connection");
             clientSocket = serverSocket.accept();
-            System.out.println("I am Thread " + Thread.currentThread().getName() + " banana");
+            System.out.println(Thread.currentThread().getName() + " has connected");
+            ClientHandler clientHandler = new ClientHandler(clientSocket);
+            waitingConnection.submit(clientHandler);
+            clientHandlers.add(clientHandler);
         }
-        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+    }
 
-        String message = "hello";
-        while (message != null) {
+
+    public static class ClientHandler implements Runnable {
+        private Socket clientSocket;
+        private BufferedReader in;
+        private PrintWriter out;
+        String message;
+
+
+        public ClientHandler(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+
             try {
-                message = in.readLine();
-                if (message != null) {
-
-                    System.out.println(Thread.currentThread().getName() + " said: " + message);
-                }
-
-
+                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                out = new PrintWriter(clientSocket.getOutputStream(), true);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                System.out.println(e.getMessage());
             }
         }
-        in.close();
-        out.close();
-        serverSocket.close();
-        clientSocket.close();
-        System.out.println("Chat has been closed");
 
-// STEP4: Read from/write to the stream
-    }
-
-    private void close(Socket clientSocket) {
-
-        try {
-            clientSocket.close();
-
-        } catch (IOException e) {
-
-            System.out.println(e.getMessage());
+        public void read() {
+            try {
+                message = in.readLine();
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
         }
 
-    }
-
-    private void dispatch(Socket clientSocket) {
-
-        try {
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            DataOutputStream out = new DataOutputStream(clientSocket.getOutputStream());
-            close(clientSocket);
-        } catch (SocketException ex) {
-
-            System.out.println(ex.getMessage());
-
-        } catch (IOException ex) {
-            close(clientSocket);
+        public void write(){
+            out.println(message);
+            System.out.println(Thread.currentThread().getName() + " " + message);
         }
-
-
-    }
-
-    private class ClientDispatcher implements Runnable {
-
-        private Socket socket;
-
-        public ClientDispatcher(Socket socket) {
-            this.socket = socket;
-        }
-
 
         @Override
         public void run() {
-            dispatch(socket);
+            while (true) {
+                read();
+                write();
+            }
         }
     }
-
 
 }
