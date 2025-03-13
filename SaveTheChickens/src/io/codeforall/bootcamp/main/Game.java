@@ -94,8 +94,7 @@ public class Game implements KeyboardHandler {
         }
     }
 
-    public void updateRoom() {
-        System.out.println(player.isFinishChallenge());
+    public synchronized void updateRoom() {
         if (this.player.isFinishChallenge() || currentRoom == null) {
             if (currentRoom == null) {
                 this.currentRoom = rooms[0];
